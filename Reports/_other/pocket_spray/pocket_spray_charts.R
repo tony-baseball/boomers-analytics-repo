@@ -9,10 +9,11 @@ library(grid)
 library(gridExtra)
 library(cowplot)
 library(glue)
+library(gtable)
 
 db <- dbConnect(SQLite(),"C:/Users/tdmed/OneDrive/_Trackman/frontier_league.sqlite")
 
-opposing_hittier_pos_cards <- function(database, hitters, home_team_code) {
+opposing_hitter_pos_cards <- function(database, hitters, home_team_code) {
   
   hit_colors <- c(
     "GB" = "green",
@@ -686,8 +687,7 @@ opposing_hittier_pos_cards <- function(database, hitters, home_team_code) {
                    LA >= 40 ~ 'PU'
                  )
           ) 
-        
-        polygons_of <- read.csv('C://Users/tdmed/OneDrive/Documents/of_spray_9.csv') %>%
+        polygons_of <- read.csv('Reports/_other/pocket_spray/of_spray_9.csv') %>%
           left_join(of_spray_pct, by = c('polygon_id' = 'hit_direction_9')) %>%
           mutate(across(c(bip, pct, label), ~ifelse(is.na(.),0,.)))
         
@@ -782,7 +782,7 @@ opposing_hittier_pos_cards <- function(database, hitters, home_team_code) {
                  )
           ) 
         
-        polygons_of <-  read.csv('C://Users/tdmed/OneDrive/Documents/of_spray_7.csv') %>%
+        polygons_of <-  read.csv('Reports/_other/pocket_spray/of_spray_7.csv') %>%
           left_join(of_spray_pct, by = c('polygon_id' = 'hit_direction_7')) %>%
           mutate(across(c(bip, pct, label), ~ifelse(is.na(.),0,.)))
         
@@ -880,7 +880,7 @@ opposing_hittier_pos_cards <- function(database, hitters, home_team_code) {
                  )
           ) 
         
-        polygons_of <-  read.csv('C://Users/tdmed/OneDrive/Documents/of_spray_5.csv') %>%
+        polygons_of <-  read.csv('Reports/_other/pocket_spray/of_spray_5.csv') %>%
           # bind_rows(lapply(1:(nrow(arc_points_of) - 1), function(i) {
           #   data.frame(
           #     polygon_id = i, # Unique ID for each polygon
@@ -982,7 +982,7 @@ opposing_hittier_pos_cards <- function(database, hitters, home_team_code) {
                  )
           ) 
         
-        polygons_of <-  read.csv('C://Users/tdmed/OneDrive/Documents/of_spray_3.csv') %>%
+        polygons_of <-  read.csv('Reports/_other/pocket_spray/of_spray_3.csv') %>%
           left_join(of_spray_pct, by = c('polygon_id' = 'hit_direction_3')) %>%
           mutate(across(c(bip, pct, label), ~ifelse(is.na(.),0,.)))
         
@@ -1071,7 +1071,7 @@ opp_hitters <- c('Alec Craig', 'Andrew Sojka', 'Chase Dawson', 'Anthony Calarco'
                  'John Fiorenza', 'Allante Hall')
 
 
-opposing_hittier_pos_cards(database = db, 
+opposing_hitter_pos_cards(database = db, 
                            hitters = opp_hitters,
                            home_team_code = 'DOW')
 
@@ -1080,11 +1080,11 @@ params <- list(
   plot_with_legend = plot_with_legend
 )
 
-
+cur_dir <- getwd()
 # )
 # RUN ----
 suppressWarnings({
-  rmarkdown::render(input = "C:/Users/tdmed/OneDrive/_Github/boomers-fl-automations/Reports/_other/pocket_spray_charts.Rmd",
-                    output_file = paste0("C:/Users/tdmed/OneDrive/_Github/boomers-fl-automations/Reports/_other/pocket_spray/IF_OF_pocket_spray_charts",".pdf"),
+  rmarkdown::render(input = "Reports/_other/pocket_spray/pocket_spray_charts.Rmd",
+                    output_file = glue("{cur_dir}/Reports/_other/pocket_spray/IF_OF_pocket_spray_charts.pdf"),
                     params = params)
 })
