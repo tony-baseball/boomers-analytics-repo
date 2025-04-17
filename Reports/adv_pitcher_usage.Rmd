@@ -1,0 +1,128 @@
+---
+output:
+  pdf_document: 
+    latex_engine: xelatex
+    keep_tex: false
+geometry: 
+  - paperwidth=8.5in
+  - paperheight=11in
+  - margin=0.05in 
+ 
+header-includes:
+  \usepackage{fontspec}
+  \setmainfont{Calibri}
+  \usepackage{booktabs}
+  \usepackage{colortbl}
+  \usepackage{subfig}
+  \usepackage{floatrow}
+  \usepackage{sectsty}
+  \usepackage{titlesec}
+  \graphicspath{{C:/Users/tdmed/OneDrive/_Github/boomers-analytics/www}}
+
+---
+```{r setup, include=FALSE}
+library(tidyverse)
+library(kableExtra)
+library(gridExtra)
+library(gtsummary)
+library(pak)
+library(kableExtra)
+library(knitr)
+library(pandoc)
+library(ggplot2)
+opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(fig.pos = '!h')
+```
+
+\begin{minipage}{0.2\textwidth}
+\centering
+\includegraphics[width=1.5cm, height=1.5cm]{`r params$team_logo`}
+\end{minipage}
+\hfill 
+\begin{minipage}{0.5\textwidth}
+\begin{center}
+\textbf{\fontsize{24}{24}\selectfont `r params$pitcher` - `r params$pitcher_hand`}
+\end{center}
+\end{minipage}
+\hfill
+\begin{minipage}{0.2\textwidth}
+\centering
+\includegraphics[width=2.5cm, height=1.5cm]{fllogo2}
+\end{minipage}
+\vspace{-7mm} 
+
+\begin{center}
+\textbf{\LARGE Heat Maps vs RHH}
+\end{center}
+\vspace{-6mm} 
+```{r rhp, fig.width=8.5, fig.height=2.1, echo=FALSE, warning=FALSE}
+pitch_plot_r
+first_plot_r
+whiff_plot_r
+two_k_plot_r
+# pitch_plot_l
+# whiff_plot_l
+
+```
+
+```{r rhh, fig.width=8.5, fig.height=2, echo=FALSE, warning=FALSE}
+knitr::kable(lg_p_vs_rhh, valign = 't') %>%
+  column_spec(2, bold = TRUE, border_left =  TRUE, color = "white",
+              background = ifelse(lg_p_vs_rhh$TaggedPitchType == 'Fastball', 'red',
+                                  ifelse(lg_p_vs_rhh$TaggedPitchType == 'Sinker', '#a34700',
+                                         ifelse(lg_p_vs_rhh$TaggedPitchType == 'Cutter', 'orange',
+                                                ifelse(lg_p_vs_rhh$TaggedPitchType == 'Curveball', '#228b22',
+                                                       ifelse(lg_p_vs_rhh$TaggedPitchType == 'Slider','#33A8FF',
+                                                              ifelse(lg_p_vs_rhh$TaggedPitchType == 'Changeup', '#E398F7', 
+                                                                     'black'))))))
+  )%>%
+  row_spec(row = 0, color = "white", background = "#12294b") %>%
+  column_spec(ncol(lg_p_vs_rhh), border_right = TRUE)
+```
+\newpage
+
+\begin{minipage}{0.2\textwidth}
+\centering
+\includegraphics[width=1.5cm, height=1.5cm]{`r params$team_logo`}
+\end{minipage}
+\hfill 
+\begin{minipage}{0.5\textwidth}
+\begin{center}
+\textbf{\fontsize{24}{24}\selectfont `r params$pitcher` - `r params$pitcher_hand`}
+\end{center}
+\end{minipage}
+\hfill
+\begin{minipage}{0.2\textwidth}
+\centering
+\includegraphics[width=2.5cm, height=1.5cm]{fllogo2}
+\end{minipage}
+\vspace{-7mm} 
+\begin{center}
+\textbf{\LARGE Heat Maps vs LHH}
+\end{center}
+\vspace{-6mm} 
+```{r lhp, fig.width=8.5, fig.height=2.1, echo=FALSE, warning=FALSE}
+# pitch_plot_r
+# whiff_plot_r
+pitch_plot_l
+first_plot_l
+whiff_plot_l
+two_k_plot_l
+
+```
+```{r lhh, fig.width=8.5, fig.height=2, echo=FALSE, warning=FALSE}
+knitr::kable(lg_p_vs_lhh, valign = 't') %>%
+  column_spec(2, bold = TRUE, border_left =  TRUE, color = "white",
+              background = ifelse(lg_p_vs_lhh$TaggedPitchType == 'Fastball', 'red',
+                                  ifelse(lg_p_vs_lhh$TaggedPitchType == 'Sinker', '#a34700',
+                                         ifelse(lg_p_vs_lhh$TaggedPitchType == 'Cutter', 'orange',
+                                                ifelse(lg_p_vs_lhh$TaggedPitchType == 'Curveball', '#228b22',
+                                                       ifelse(lg_p_vs_lhh$TaggedPitchType == 'Slider', '#33A8FF',
+                                                              ifelse(lg_p_vs_lhh$TaggedPitchType == 'Changeup', '#E398F7',
+                                                                     
+                                                                     
+                                                                     'black'))))))
+  )%>%
+  row_spec(row = 0, color = "white", background = "#12294b") %>%
+  column_spec(ncol(lg_p_vs_lhh), border_right = TRUE)
+```

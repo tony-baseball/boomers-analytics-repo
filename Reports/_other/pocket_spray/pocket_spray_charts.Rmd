@@ -1,0 +1,56 @@
+---
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: false
+geometry:
+- paperwidth=8.5in
+- paperheight=11in
+- margin=0.05in
+header-includes:
+  \usepackage{fontspec}
+  \setmainfont{Calibri}
+  \usepackage{booktabs}
+  \usepackage{colortbl}
+  \usepackage{subfig}
+  \usepackage{floatrow}
+  \usepackage{sectsty}
+  \usepackage{titlesec}
+  \graphicspath{{C:/Users/tdmed/OneDrive/_Github/boomers-analytics/www}}
+---
+```{r setup, include=FALSE}
+library(ggplot2)
+library(GeomMLBStadiums)
+library(ggnewscale)
+library(cowplot)
+library(tidyverse)
+library(stringr)
+library(RSQLite)
+library(grid)
+library(gridExtra)
+library(cowplot)
+library(glue)
+
+# opts_chunk$set(echo = FALSE)
+# knitr::opts_chunk$set(fig.pos = '!h')
+```
+
+```{r infield, echo = F, warning = F, fig.width=7.3, fig.height=5.75, }
+cowplot::plot_grid(plot_if, plot_if, nrow = 1)
+
+```
+\newpage
+```{r infield2, echo = F, warning = F, fig.width=7.3, fig.height=5.75, }
+cowplot::plot_grid(plot_if, plot_if, nrow = 1)
+
+```
+\newpage
+```{r outfield, echo = F, warning = F, fig.width=7.3, fig.height=5.75, }
+cowplot::plot_grid(plot_with_legend, plot_with_legend, nrow = 1)
+
+```
+\newpage
+```{r outfield2, echo = F, warning = F, fig.width=7.3, fig.height=5.75, }
+cowplot::plot_grid(plot_with_legend, plot_with_legend, nrow = 1)
+
+```

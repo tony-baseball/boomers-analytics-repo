@@ -1,0 +1,186 @@
+---
+output:
+  pdf_document: 
+    latex_engine: xelatex
+    keep_tex: false
+geometry: 
+  - paperwidth=8.5in
+  - paperheight=11in
+  - margin=0.05in 
+ 
+header-includes:
+  \usepackage{fontspec}
+  \setmainfont{Calibri}
+  \usepackage{booktabs}
+  \usepackage{colortbl}
+  \usepackage{subfig}
+  \usepackage{floatrow}
+  \usepackage{sectsty}
+  \usepackage{titlesec}
+  \graphicspath{{C:/Users/tdmed/OneDrive/_Github/boomers-analytics/www}}
+  
+---
+```{r setup, include=FALSE}
+#
+library(webshot)
+library(tidyverse)
+library(gridExtra)
+library(gtsummary)
+library(pak)
+library(kableExtra)
+library(knitr)
+library(flextable)
+library(pandoc)
+library(ggplot2)
+library(cowplot)
+opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(fig.pos = '!h')
+```
+
+\begin{minipage}{0.3\textwidth}
+\centering
+\includegraphics[width=2cm, height=2cm]{Schaumburg}
+\end{minipage}
+\hfill 
+\begin{minipage}{0.3\textwidth}
+\begin{center}
+\textbf{\fontsize{24}{24}\selectfont `r params$catcher`}
+\end{center}
+\end{minipage}
+\hfill
+\begin{minipage}{0.3\textwidth}
+\centering
+\includegraphics[width=3cm, height=2cm]{fllogo2}
+\end{minipage}
+
+\vspace{-7mm} 
+\begin{center}
+\textbf{\normalsize `r params$date` vs `r params$opponent`}
+\end{center}
+\vspace{-7mm} 
+```{r strikes lost gained, echo = FALSE, warning = FALSE }
+kable(catcher_summary,  format = "latex",  linesep = "") %>%
+  kable_styling(latex_options = "HOLD_position", position = "center")%>%
+  column_spec(1,border_left = TRUE) %>%
+  column_spec(3, bold = T, border_left = T, color = 'white',
+              background = ifelse('Game +/-' > 0 & 'Game +/-' < 3, '#93EA8E',
+                                  ifelse('Game +/-' >=3,'#339a1d',
+                                         ifelse('Game +/-' < 0 & 'Game +/-' > -3, '#eaa48e', '#ba1c0f')))
+  ) %>%
+  row_spec(row = 0, color = "white", background = "#12294b") %>%
+  column_spec(ncol(catcher_summary), border_right = TRUE)
+```
+\vspace{-7mm}
+\begin{center}
+\textbf{\normalsize Frontier League Career Framing Stats}
+\end{center}
+\vspace{-7mm}
+```{r strikes lost gained career, echo = FALSE, warning = FALSE }
+kable(catcher_season_summary %>% mutate(across(3:7, ~ as.numeric(.))),  format = "latex",  linesep = "") %>%
+  kable_styling(latex_options = "HOLD_position", position = "center")%>%
+  column_spec(1,border_left = TRUE) %>%
+  column_spec(7, bold = T, color = 'white',
+              background =
+                case_when(
+                  catcher_season_summary$`+/- Strikes per Game` >= 3 ~ '#339a1d',
+                  between(catcher_season_summary$`+/- Strikes per Game`, 0,3) ~ '#93EA8E',
+                  between(catcher_season_summary$`+/- Strikes per Game`, 0,-3) ~ '#eaa48e',
+                  catcher_season_summary$ `+/- Strikes per Game` <= -3 ~ '#ba1c0f',
+                  T ~ 'white'
+                  
+                  
+                )
+              # ifelse('+/- Strikes per Game' > 0 & '+/- Strikes per Game' < 3, '#93EA8E',
+              #                   ifelse('+/- Strikes per Game' >=3,'#339a1d',
+              #                          ifelse('+/- Strikes per Game' < 0 & '+/- Strikes per Game' > -3, '#eaa48e', '#ba1c0f')))
+  ) %>%
+  row_spec(row = 0, color = "white", background = "#12294b") %>%
+  column_spec(ncol(catcher_season_summary), border_right = TRUE)
+```
+\vspace{-5mm}
+\centering
+```{r strikes plots , echo = FALSE, warning = FALSE, fig.width=8, fig.height=3.5, fig.align='center'}
+# grid.arrange(StolenStrikes, LostStrikes, ncol = 2)
+# Create the master legend
+prow <- plot_grid(
+  StolenStrikes + theme(legend.position="none"),
+  # NULL,
+  LostStrikes + theme(legend.position="none"),
+  align = 'vh',
+  hjust = -1,
+  nrow = 1,
+  rel_widths = c(1, 1)
+)
+
+legend <- suppressWarnings(
+  get_legend(
+    # create some space to the left of the legend
+    StolenStrikes + labs(fill = 'Pitch') +theme(#legend.box.margin = margin(0, 0, 0, 12), 
+      legend.direction = 'horizontal')
+  )
+)
+
+
+# now add in the legend
+# prow + draw_grob(legend, 1/3, 0, 1/3, 1)
+plot_grid(
+  prow, legend,
+  ncol = 1,  # Stack the plots and the legend vertically
+  rel_heights = c(1, 0.1)  # Adjust height ratio to make the legend smaller
+)
+
+```
+\vspace{-0.5cm}
+```{r log, echo=FALSE, warning=FALSE }
+if(nrow(catcher_log)>0) {
+  kable(catcher_log,  format = "latex",  linesep = "") %>%
+    row_spec(seq(2, nrow(catcher_log), by = 2), background = "#f2f2f2") %>%
+    kable_styling(latex_options = "HOLD_position", position = "center")%>%
+    column_spec(1,border_left = TRUE) %>%
+    column_spec(col=9, bold = T,color = 'white',background = ifelse(catcher_log$Actual == 'BALL', '#339a1d', '#ba1c0f')) %>%
+    row_spec(row = 0, color = "white", background = "#12294b") %>%
+    column_spec(ncol(catcher_log), border_right = TRUE)  %>%
+    column_spec(1,border_left = TRUE) 
+} else {
+  kable(data.frame(Message = "No Strikes Lost or Stolen!"), format = "latex", linesep = "") %>%
+    kable_styling(latex_options = "HOLD_position", position = "center") %>%
+    column_spec(1, border_left = TRUE) %>%
+    row_spec(row = 0, color = "white", background = "#12294b") 
+}
+```
+\newpage
+\vspace{-0.5cm}
+\begin{center}
+\textbf{\fontsize{24}{24}\selectfont Throwing Report}
+\end{center} 
+
+
+
+
+\centering
+```{r tables, echo=FALSE, warning=FALSE}
+if (nrow(Throwlog) >= 2) {
+  kable(Throwlog, format = "latex", linesep = "") %>%
+    row_spec(seq(2, nrow(Throwlog), by = 2), background = "#f2f2f2") %>%
+    kable_styling(latex_options = "HOLD_position", position = "center") %>%
+    column_spec(1, border_left = TRUE) %>%
+    row_spec(row = 0, color = "white", background = "#12294b") %>%
+    column_spec(ncol(Throwlog), border_right = TRUE)
+} else if (nrow(Throwlog) == 0) {
+  # Create a placeholder message if there is no data
+  kable(data.frame(Message = "No Throwing Data Available"), format = "latex", linesep = "") %>%
+    kable_styling(latex_options = "HOLD_position", position = "center") %>%
+    column_spec(1, border_left = TRUE) %>%
+    row_spec(row = 0, color = "white", background = "#12294b") 
+} else {
+  kable(Throwlog, format = "latex", linesep = "") %>%
+    kable_styling(latex_options = "HOLD_position", position = "center") %>%
+    column_spec(1, border_left = TRUE) %>%
+    row_spec(row = 0, color = "white", background = "#12294b") %>%
+    column_spec(ncol(Throwlog), border_right = TRUE)
+}
+```
+\centering
+```{r throwplot, echo=FALSE, warning=FALSE, fig.align='center'}
+ThrowPlot
+```
