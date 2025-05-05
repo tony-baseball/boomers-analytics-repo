@@ -38,7 +38,7 @@ for(i in 1:length(table_indices)){
     
   }
   # Clean the lines (remove unwanted characters like '*', 'X', etc.)
-  cleaned_lines <- gsub("[*X#]", "", table1)
+  cleaned_lines <- gsub("[I*X#]", "", table1)
   
   if(i <3){
     # Split by whitespace, keeping columns separated by space

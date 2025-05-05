@@ -1,7 +1,7 @@
 suppressMessages(
   suppressWarnings({
     library(knitr)
-    library(plyr)
+    # library(plyr)
     library(dplyr)
     library(baseballr)
     library(ggrepel)
@@ -37,10 +37,10 @@ team_info <- # read.csv("C:/Users/tdmed/OneDrive/_FLASH/frontier team info.csv")
   dbGetQuery(db, 'SELECT * FROM teams')
 
 all_pitchers <- #read.csv("C:/Users/tdmed/OneDrive/_FLASH/frontier_all_pitchers23.csv") %>%
-  dbGetQuery(db, 'SELECT * FROM stats_pitching_player where SEASON = 2024') 
+  dbGetQuery(db, 'SELECT * FROM stats_pitching_player') 
 
 rosters<- # read.csv("C:/Users/tdmed/OneDrive/_FLASH/front_rosters24.csv")%>%
-  dbGetQuery(db, 'SELECT * FROM rosters where SEASON = 2024')
+  dbGetQuery(db, 'SELECT * FROM rosters where SEASON = 2025')
 
 print("CSVs loaded!")
 
@@ -49,65 +49,44 @@ print("CSVs loaded!")
   
   # team_filter <- 'Schaumburg Boomers'
   
-  team_code <- team_info$bats_team_code[team_info$team_FL == team_filter]
+  team_code <- opposing_team_code
   
-  team_location <- gsub(" |-","",team_info$Location[team_info$bats_team_code == team_code])
+  team_location <- opposing_team_location
   
   folder_path <- paste0("C:/Users/tdmed/OneDrive/R_Markdown/pitcher_reports/", team_code)
   
   if (!file.exists(folder_path)) { dir.create(folder_path) }
   
   # ------------------------
-  yakker <- dbGetQuery(db, 
-                       #         paste0(
-                       #           'SELECT *
-                       # FROM pitch_data
-                       # where PitcherTeam = "',team_filter,'"'
-                       #         ),
-                       glue::glue(
-                         'SELECT * FROM pitch_data WHERE PitcherTeam = "{team_filter}" and SEASON -- >= 2024' 
-                       )
-  ) %>%
-    filter(TaggedPitchType !='', 
-           BatterSide != '',
-           TaggedPitchType !='NA',
-           !is.na(TaggedPitchType))  %>%
-    mutate(Pitcher = gsub('A.husson', "Aaron Husson", Pitcher))
-  
-  unique(yakker$TaggedPitchType)
-  unique(yakker$PitcherTeam)
-  unique(yakker$Pitcher)
-  
-  sort(unique(yakker$Date))
-  # set a factor to manually order the pitch types
-  yakker$TaggedPitchType <- factor(yakker$TaggedPitchType, levels = c("Fastball", "Sinker", "Cutter","Curveball", "Slider", "Changeup", "Splitter", 'Knuckleball', 'Other'))
-  
   
   team_roster <- rosters %>%
-    filter(TEAM == team_filter,
-           grepl("P", POSITION),
-           STATUS != 'Inactive')
+    filter(Team == team_filter,
+           SEASON == 2025,
+           grepl("P", Position),
+           Status != 'Inactive') %>%
+    arrange(LastName)
   
-  roster_pitchers <- sort(unique(team_roster$NAME)) 
-  roster_pitchers
-  pitchers <- sort(unique(yakker$Pitcher)) 
+  pitchers_trackman <- dbGetQuery(db, 'select Distinct Pitcher from pitch_data order by Pitcher')$Pitcher
+  
+  roster_pitchers <- unique(team_roster$Player)
+  
+  team_p <- team_roster %>% filter(Player %in% pitchers_trackman) %>%
+    arrange(LastName)
+  
+  unique_pitchers <- team_p$Player
+  
+  pitchers <- unique_pitchers
   pitchers
   
   intersect(roster_pitchers, pitchers)
-  
-  team_p <- team_roster %>% filter(NAME %in% pitchers)
-  
-  unique_pitchers <- sort(unique(team_p$NAME))
-  # unique_pitchers <- unique_pitchers[3]
-  
-  
   # LOOP ---------
   
   # For each pitcher in the dataset, fun through the following code
-  for (pitcher in unique_pitchers) {
+  for (pitcher in pitchers) {
     suppressMessages({
       # Filter the data for the current pitcher
-      pitcher_data <<- yakker[yakker$Pitcher == pitcher, ]
+      pitcher_data <<- dbGetQuery(db, glue::glue('SELECT * from pitch_data where Pitcher = "{pitcher}" and TaggedPitchType is not null AND TaggedPitchType <> ""')) %>%
+        tonybsbl::pitch_types_factor()
       
       season_stats <- all_pitchers %>%
         filter(Player == pitcher) %>%
@@ -151,6 +130,7 @@ print("CSVs loaded!")
         dplyr::select(-Usage,-Time,-HH,-MM)
       
       season_summary_table
+      
       # Generate the pitch usage table ----
       pitch_usage_table <- pitcher_data  %>%
         dplyr:: mutate(TaggedPitchType = recode(TaggedPitchType, Fastball = "FB", Curveball = 'CB', Sinker = 'SI', Slider = 'SL',
@@ -254,7 +234,7 @@ print("CSVs loaded!")
                `1P%` = round(`1P%`/sum(`1P%`),3)*100,
                `2K%` = round(`2K%`/sum(`2K%`),3)*100) %>% 
         dplyr::select(-`1P`, -`2K`)
-      usage_l
+      # usage_l
       # STATS VS LHH ----
       stats_vs_l <- pitcher_data  %>%
         dplyr:: mutate(TaggedPitchType = recode(TaggedPitchType, Fastball = "FB", Curveball = 'CB', Sinker = 'SI', Slider = 'SL',
@@ -295,7 +275,7 @@ print("CSVs loaded!")
       
       p_2 <- pitcher_data %>%
         group_by(Pitcher, PitcherThrows) %>%
-        dplyr::summarise(PitcherTeam = unique(PitcherTeam),
+        dplyr::summarise(PitcherTeam = paste(unique(PitcherTeam), collapse = ", "),
                          height_inches = mean(height_inches, na.rm = T),
                          shoulder_pos = mean(shoulder_pos, na.rm = T),
                          release_pos_x = median(RelSide * 12, na.rm = T),
@@ -399,7 +379,7 @@ print("CSVs loaded!")
           ))
       }
       
-      ggplotly(pitch_movement_plot)
+      # ggplotly(pitch_movement_plot)
       
       
       # Pitch velo table and plot ----
@@ -409,7 +389,7 @@ print("CSVs loaded!")
         arrange(Inning, desc(Max)) %>%
         dplyr:: mutate(TaggedPitchType = recode(TaggedPitchType, Fastball = "FB", Curveball = 'CB', Sinker = 'SI', Slider = 'SL',
                                                 Cutter = 'CT', Changeup = 'CH', Other = 'OT', Knuckleball = 'KN'  ) )
-      length(unique(pvp_game$Inning))
+      # length(unique(pvp_game$Inning))
       
       pvp_game_plot <- 
         # This loop says if they pitched more than one inning, then to add geom_line(), if they only pitched one inning, then use only geom_point()
@@ -498,65 +478,6 @@ print("CSVs loaded!")
         ncol = 1   
         
       )
-      # rm(plp_all)
-      # Pitch location plot vs rhh with a facet wrap on one of the created columns ----
-      # plp_all <- 
-      #   ggplot(pitcher_data %>% mutate(whiff = ifelse(whiff==1,'Whiff', 'All')) %>%
-      #            dplyr:: mutate(TaggedPitchType = recode(TaggedPitchType, Fastball = "FB", Curveball = 'CB', Sinker = 'SI', Slider = 'SL',
-      #                                                    Cutter = 'CT', Changeup = 'CH', Other = 'OT', Knuckleball = 'KN'  ) ),
-      #          aes(x = -PlateLocSide, y = PlateLocHeight)) +
-      #   xlim(-1.5, 1.5) + ylim(0, 4) +
-      #   labs(color = "", shape = '', title = paste("Pitch Locations - Batter POV")) +
-      #   geom_rect(aes(xmin = -0.83, xmax = 0.83, ymin = 1.5, ymax = 3.5), alpha = 0, size = 0.75, color = "black") +
-      #   geom_segment(data = tonybaseball::home_plate_c_pov, aes(x=x,y=y,xend=xend,yend=yend), size = 1)+
-      #   geom_point(aes(color = TaggedPitchType ),size =2.5, alpha = .75) +
-      #   # stat_density2d(aes(fill = as.numeric(..level..)), geom = "polygon", bins = 1, adjust = 1, contour = T, show.legend = F) +
-      #   scale_color_manual(values = c('FB' = 'red', 'CB' = 'darkgreen', 'SI' = '#a34700', 'SL' = '#33A8FF',
-      #                                 'CT' = 'orange', 'CH' = 'violet', 'OT' = 'black', 'SPL' = 'black', 'KN' = 'black')) +
-      #   
-      #   # scale_fill_manual(values = c('FB' = 'red', 'CB' = 'darkgreen', 'SI' = '#a34700', 'SL' = '#33A8FF',
-      #   #                              'CT' = 'orange', 'CH' = 'violet', 'OT' = 'black', 'SPL' = 'black', 'KN' = 'black')) +
-      #   theme_bw() +
-      #   theme(plot.title = element_text(size = 10, face = "bold", hjust = 0.5)) +
-      #   theme(legend.position = 'bottom' ,legend.text = element_text(size = 7), axis.title = element_blank()) +
-      #   facet_wrap(BatterSide~whiff, nrow = 2) +
-      #   theme(strip.text = element_text(size = 8, face = 'bold'),
-      #         axis.text.x = element_blank(),
-      #         axis.text.y = element_blank(),
-      #         panel.background = element_rect(fill = 'white'),
-      #         panel.grid.major = element_line(colour = 'white'),
-      #         panel.grid.minor = element_line(colour = 'white')
-      #         
-      #   )+
-      #   guides(color = "none")
-      # 
-      # plp_all
-      #
-      # Pitch location plot vs lhh with a facet wrap on one of the created columns ----
-      
-      # plp_lhh <- ggplot(data = pitcher_data %>% filter(filter_col !='Take' & !is.na(filter_col), BatterSide == 'Left' )%>%
-      #                     dplyr:: mutate(TaggedPitchType = recode(TaggedPitchType, Fastball = "FB", Curveball = 'CB', Sinker = 'SI', Slider = 'SL',
-      #                                                             Cutter = 'CT', Changeup = 'CH', Other = 'OT', Knuckleball = 'KN'  ) ), 
-      #                   aes(x = -PlateLocSide, y = PlateLocHeight, color = TaggedPitchType)) +
-      #   xlim(-1.5,1.5) + ylim(0,4) + labs(color = "",title = paste("Pitch Location vs LHH" ) )+
-      #   geom_rect(aes(xmin = -0.83, xmax = 0.83, ymin = 1.5, ymax = 3.5), alpha = 0, size = .75, color = "black") +
-      #   coord_equal()+
-      #   # Home Plate Outline Below
-      #   geom_segment(aes(x = -0.708, y = 0.15, xend = 0.708, yend = 0.15), size = 1, color = "black") +
-      #   geom_segment(aes(x = -0.708, y = 0.3, xend = -0.708, yend = 0.15), size = 1, color = "black") +
-      #   geom_segment(aes(x = -0.708, y = 0.3, xend = 0, yend = 0.5), size = 1, color = "black") +
-      #   geom_segment(aes(x = 0, y = 0.5, xend = 0.708, yend = 0.3), size = 1, color = "black") +
-      #   geom_segment(aes(x = 0.708, y = 0.3, xend = 0.708, yend = 0.15), size = 1, color = "black") +
-      #   geom_point(size =3, alpha = .75) +
-      #   scale_color_manual(values = c('FB' = 'red', 'CB' = 'darkgreen', 'SI' = '#a34700',  'SL'='#33A8FF',
-      #                                 'CT' = 'orange',  'CH'='violet', 'OT' = 'black', 'SPL' = 'black', 'KN' = 'black')) + # , na.rm = TRUE)+
-      #   theme_bw() + theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5)) +
-      #   theme(legend.position = "none", legend.text = element_text(size = 10), axis.title = element_blank())  +
-      #   facet_wrap(~filter_col)+
-      #   theme(strip.text = element_text(size = 11, face = 'bold'))
-      # 
-      
-      
       
       # CREATES ANOTHER USAGE BREAKDOWN ----
       
@@ -600,7 +521,7 @@ print("CSVs loaded!")
         facet_wrap(BatterSide~filter_2, nrow=2) + 
         theme(legend.position="none")
       
-      breakdown
+      # breakdown
       
       pitcher_hand <- pitcher_data$PitcherThrows[1]
       pitcher_hand <- ifelse(pitcher_hand =='Right', 'RHP',

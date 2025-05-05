@@ -1,6 +1,6 @@
 # POSTGAME REPORTS
 suppressWarnings(suppressMessages({ # LOAD LIBRARIES----
-  library(plyr)
+  # library(plyr)
   library(tidyverse)
   library(baseballr)
   library(discordr)
@@ -30,13 +30,16 @@ suppressWarnings(suppressMessages({ # LOAD LIBRARIES----
   library(slackr)
   library(googledrive)
   library(ggh4x)
+  library(gtable)
   
 }))
 
 {
-  team_filter <- "Schaumburg Boomers"
+  team_filter <- "Windy City ThunderBolts"
+  home_team_in_series <- "Schaumburg Boomers"
   
-  
+  setwd("C:/Users/tdmed/OneDrive/_Github/boomers-fl-automations/Reports/")
+  # getwd()
   db <- dbConnect(SQLite(),"C:/Users/tdmed/OneDrive/_Trackman/frontier_league.sqlite")
   
   # CREATE A DISCORD WEBHOOK FOR AUTOMATED NOTIFICATIONS
@@ -53,6 +56,7 @@ suppressWarnings(suppressMessages({ # LOAD LIBRARIES----
   # )
   
   opposing_team_code <- dbGetQuery(db, glue::glue('SELECT bats_team_code FROM teams WHERE Team = "{team_filter}"'))$bats_team_code
+  home_team_in_series_code <-   dbGetQuery(db, glue::glue('SELECT bats_team_code FROM teams WHERE Team = "{home_team_in_series}"'))$bats_team_code 
   
   opposing_team_location <- gsub(" |-","", dbGetQuery(db, glue::glue('SELECT Location FROM teams WHERE Team = "{team_filter}"'))$Location)
   
@@ -64,14 +68,16 @@ suppressWarnings(suppressMessages({ # LOAD LIBRARIES----
     'stats' = 'adv_opponent_stats.R',
     'opposing_hitters' = 'adv_hitter_report.R',
     'opposing_pitchers' = 'adv_pitcher_report.R',
-    'bullpen_usage' = 'adv_bullpen_report.R'
+    'bullpen_usage' = 'adv_bullpen_report.R',
+    'pocket_cards' = '_other/pocket_spray/pocket_spray_charts.R'
   )
   
   run_advanced_scouting <- list(
-    'stats' = T,
-    'opposing_hitters' = T,
-    'opposing_pitchers' = T,
-    'bullpen_usage' = T
+    'stats' = F,
+    'opposing_hitters' = F,
+    'opposing_pitchers' = F,
+    'bullpen_usage' = F,
+    'pocket_cards' = T
   )
   
   dcs <- names(run_advanced_scouting)[unlist(run_advanced_scouting)]
@@ -79,6 +85,21 @@ suppressWarnings(suppressMessages({ # LOAD LIBRARIES----
   scripts_to_run <- r_scripts[dcs]
   
 }
+
+dput(dbGetQuery(db, glue::glue('SELECT * from rosters where SEASON = 2025 and Team = "{team_filter}" and Position not like "P%" and Position not like "Inactive"'))$Player)
+
+unique_hitters <- c("Christian Kuzemka",  "Ashton Creal","David Maberry", 
+                    "Will Armbruester","Cam Phelts", "Zach Beadle",
+                    "Garrett Broussard",
+                    "Jose Curpa", "Winder Diaz", "Kendal Ewell", "JJ Figueroa", "Ruddy Gomez", 
+                    "Anders Green", "Jalen Greer", "Kyle Harbison", "Anthony Herron Jr.", 
+                    "Tyler Hill", "Dakota Kotowski",  
+                    "Michael Sandle", "Oscar Serratos", "Donivan Williams"
+)
+
+pocket_cards_lineup_order <- 'auto' # manual or auto
+
+
 # EXECUTE ----
 {
   tictoc::tic()

@@ -115,6 +115,9 @@ if (file_dif > 0 ) { # MASTER CODE ----
         tonybaseball::xStats_yak() %>%
         tonybaseball::calc_arm_angle() %>% 
         tonybaseball::calc_run_value() %>%
+        tonybaseball::power_value_model() %>%
+        tonybaseball::contact_value_model() %>%
+        tonybaseball::decision_value_model() %>%
         # tonybaseball::yt_event_from_pbp(dates_for_pbp = dates_for_pbp) %>%
         mutate(local_vid_file = NA) %>%
         tonybaseball::tm_column_order()
@@ -146,6 +149,9 @@ if (file_dif > 0 ) { # MASTER CODE ----
         tonybaseball::xStats_yak() %>%
         tonybaseball::calc_arm_angle() %>% 
         tonybaseball::calc_run_value() %>%
+        tonybaseball::power_value_model() %>%
+        tonybaseball::contact_value_model() %>%
+        tonybaseball::decision_value_model() %>%
         # tonybaseball::yt_event_from_pbp(dates_for_pbp = dates_for_pbp) %>%
         mutate(local_vid_file = NA) %>%
         tonybaseball::tm_column_order()

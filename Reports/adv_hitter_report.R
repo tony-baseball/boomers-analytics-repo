@@ -1,7 +1,7 @@
 suppressMessages(
   suppressWarnings({
     library(knitr)
-    library(plyr)
+    # library(plyr)
     library(dplyr)
     library(baseballr)
     library(ggrepel)
@@ -33,6 +33,14 @@ opposite_hand <- c('Right', 'Left')
 file.remove(list.files(paste0("C:/Users/tdmed/OneDrive/R_Markdown/hitter_reports/",opposing_team_code,"/"), pattern = '.pdf', full.names = T))
 file.remove(list.files(paste0("C:/Users/tdmed/OneDrive/_Advance/",opposing_team_code,"/H/"), pattern = '.pdf', full.names = T))
 
+get_density <- function(x, y, ...) {
+  dens <- MASS::kde2d(x, y, ...)
+  ix <- findInterval(x, dens$x)
+  iy <- findInterval(y, dens$y)
+  ii <- cbind(ix, iy)
+  return(dens$z[ii])
+}
+
 find_zone <- function(x_coord, y_coord, rect_data, poly_data) {
   # Ensure inputs are valid
   if (is.na(x_coord) || is.na(y_coord)) {
@@ -63,97 +71,71 @@ find_zone <- function(x_coord, y_coord, rect_data, poly_data) {
   # If no match, return "Ball"
   return(NA)
 }
-
-zone_data <- data.frame(
-  zone_number = 1:9,
-  x_min = c(-9.96, -3.32, 3.32, -9.96, -3.32, 3.32, -9.96, -3.32, 3.32),
-  x_max = c(-3.32, 3.32, 9.96, -3.32, 3.32, 9.96, -3.32, 3.32, 9.96),
-  y_min = c(34, 34, 34, 26, 26, 26, 18, 18, 18),
-  y_max = c(42, 42, 42, 34, 34, 34, 26, 26, 26)
-) %>%
-  mutate(across(c('x_min','x_max','y_min','y_max'), ~ . / 12))
-
-zone_10 <- data.frame(
-  zone_number = 10,
-  x = c( 0,  0, -9.96, -9.96, -13.28, -13.28,0 ),
-  y = c(45, 42,    42,    30,      30, 45, 45 )
-) %>%
-  mutate(across(c('x','y'), ~ . / 12))
-
-zone_11 <- data.frame(
-  zone_number = 11,
-  x = c( 0,  0, 9.96, 9.96, 13.28, 13.28,0  ),
-  y = c(45, 42,    42,    30,      30, 45 , 45)
-)%>%
-  mutate(across(c('x','y'), ~ . / 12))
-zone_12 <- data.frame(
-  zone_number = 12,
-  x = c( 0,  0, -13.28, -13.28, -9.96, -9.96,0 ),
-  y = c(18, 15,    15,    30,      30, 18 ,18)
-)%>%
-  mutate(across(c('x','y'), ~ . / 12))
-zone_13 <- data.frame(
-  zone_number = 13,
-  x = c( 0,  0, 13.28, 13.28, 9.96, 9.96, 0 ),
-  y = c(18, 15,    15,    30,      30, 18, 18 )
-)%>%
-  mutate(across(c('x','y'), ~ . / 12))
-edge_zones <- rbind(
-  transform(zone_10, zone_number = 10),
-  transform(zone_11, zone_number = 11),
-  transform(zone_12, zone_number = 12),
-  transform(zone_13, zone_number = 13)
-)
-polygon_zones <- list(
-  zone_10,
-  zone_11,
-  zone_12,
-  zone_13
-)
-edge_zone_label <- data.frame(
-  zone_number = 10:13,
-  x = c(-11.62, 11.62, -11.62, 11.62),
-  y = c(43.5, 43.5, 16.5, 16.5)
-) %>%
-  mutate(across(c('x','y'), ~ . / 12))
-
-# hh_tbl_opp$PlateLocSide[1]
-
-# ev_zone_tbl_opp
-# ggplotly(
-
-
-
-# ggplot()+
-#   # geom_point(aes(color = zone_loc))+
-#   xlim(-1.5,1.5) + ylim(0,4)+
-#   geom_rect(data = ev_zone_tbl, aes(xmin = x_min, xmax = x_max, ymin = y_min, ymax = y_max, fill = EV),
-#             color = "black", alpha = 1, inherit.aes = F)+
-#   scale_fill_gradient2(midpoint = 88, low="cornflowerblue", mid="white",high="red") +
-#   geom_polygon(data = ev_edge_zone_tbl, aes(x = x, y = y, group = zone_number, fill = EV), color = "black", size = 1  ) +
-#   geom_segment(data = tonybaseball::home_plate_p_pov, aes(x = x, y = y, xend = xend, yend = yend), size = 1, color = "black")+
-#   # annotate("rect", xmin = -0.83, xmax = 0.83, ymin = 1.5, ymax = 3.5, color = "black", alpha = 0, size = 1) +
-#   geom_text( data = ev_zone_tbl,
-#              aes(x = (x_min + x_max) / 2, y = (y_min + y_max) / 2, label = EV), size = 5, color = "black" )+
-#   geom_text( data = ev_edge_zone_label,
-#              aes(x = x, y = y , label = EV), size = 5, color = "black" )+
-#   coord_fixed()+
-#   theme_void()+
-#   labs(title = 'Exit Velo by Zone')+
-#   theme(plot.title = element_text(size = 12, face = "bold", hjust = 0.5))
-# # )
+{
+  zone_data <- data.frame(
+    zone_number = 1:9,
+    x_min = c(-9.96, -3.32, 3.32, -9.96, -3.32, 3.32, -9.96, -3.32, 3.32),
+    x_max = c(-3.32, 3.32, 9.96, -3.32, 3.32, 9.96, -3.32, 3.32, 9.96),
+    y_min = c(34, 34, 34, 26, 26, 26, 18, 18, 18),
+    y_max = c(42, 42, 42, 34, 34, 34, 26, 26, 26)
+  ) %>%
+    mutate(across(c('x_min','x_max','y_min','y_max'), ~ . / 12))
+  
+  zone_10 <- data.frame(
+    zone_number = 10,
+    x = c( 0,  0, -9.96, -9.96, -13.28, -13.28,0 ),
+    y = c(45, 42,    42,    30,      30, 45, 45 )
+  ) %>%
+    mutate(across(c('x','y'), ~ . / 12))
+  
+  zone_11 <- data.frame(
+    zone_number = 11,
+    x = c( 0,  0, 9.96, 9.96, 13.28, 13.28,0  ),
+    y = c(45, 42,    42,    30,      30, 45 , 45)
+  )%>%
+    mutate(across(c('x','y'), ~ . / 12))
+  zone_12 <- data.frame(
+    zone_number = 12,
+    x = c( 0,  0, -13.28, -13.28, -9.96, -9.96,0 ),
+    y = c(18, 15,    15,    30,      30, 18 ,18)
+  )%>%
+    mutate(across(c('x','y'), ~ . / 12))
+  zone_13 <- data.frame(
+    zone_number = 13,
+    x = c( 0,  0, 13.28, 13.28, 9.96, 9.96, 0 ),
+    y = c(18, 15,    15,    30,      30, 18, 18 )
+  )%>%
+    mutate(across(c('x','y'), ~ . / 12))
+  edge_zones <- rbind(
+    transform(zone_10, zone_number = 10),
+    transform(zone_11, zone_number = 11),
+    transform(zone_12, zone_number = 12),
+    transform(zone_13, zone_number = 13)
+  )
+  polygon_zones <- list(
+    zone_10,
+    zone_11,
+    zone_12,
+    zone_13
+  )
+  edge_zone_label <- data.frame(
+    zone_number = 10:13,
+    x = c(-11.62, 11.62, -11.62, 11.62),
+    y = c(43.5, 43.5, 16.5, 16.5)
+  ) %>%
+    mutate(across(c('x','y'), ~ . / 12))
+}
 
 db <- dbConnect(SQLite(),"C:/Users/tdmed/OneDrive/_Trackman/frontier_league.sqlite")
 
 print("Loading data from database...")
 
-# team_filter <- "Gateway Grizzlies"
+home_team_series <- home_team_in_series_code
 
-home_team_series <- opposing_team_code
+team_info <- dbGetQuery(db, 'SELECT * FROM teams') # read.csv("C:/Users/tdmed/OneDrive/_FLASH/frontier team info.csv")
 
-team_info <- dbGetQuery(db, 'SELECT * FROM teams')# read.csv("C:/Users/tdmed/OneDrive/_FLASH/frontier team info.csv")
-
-all_hitters <- dbGetQuery(db, glue::glue('SELECT * FROM stats_hitting_player where TEAM = "{team_filter}"')) %>%
+# hitting stats from players on team
+all_hitters <- dbGetQuery(db, glue::glue('SELECT * FROM stats_hitting_player where Team = "{team_filter}"')) %>%
   dplyr::rename(`2B` = "X2B",
                 `3B` = "X3B",
                 `GO/FO` = "GO_FO",
@@ -166,7 +148,7 @@ all_hitters <- dbGetQuery(db, glue::glue('SELECT * FROM stats_hitting_player whe
   mutate(Player = str_squish(Player),
          `NO.` = as.numeric(`NO.`)) 
 
-rosters<-  dbGetQuery(db, 'SELECT * FROM rosters') # read.csv("C:/Users/tdmed/OneDrive/_FLASH/front_rosters24.csv")
+# rosters<-  dbGetQuery(db, 'SELECT * FROM rosters') # read.csv("C:/Users/tdmed/OneDrive/_FLASH/front_rosters24.csv")
 
 print("Data loaded!")
 
@@ -175,13 +157,13 @@ print("Data loaded!")
 
 # team_filter <- "Florence Y'alls"
 
-team_code <- team_info$bats_team_code[team_info$team_FL == team_filter]
+team_code <- opposing_team_code
 
-team_location <- gsub(" |-","",team_info$Location[team_info$bats_team_code == team_code])
+team_location <- opposing_team_location
 
 folder_path <- paste0("C:/Users/tdmed/OneDrive/R_Markdown/hitter_reports/", team_code)
 
-ballparks <- dbGetQuery(db, glue::glue('select * from ballpark_dimensions where HomeTeamCode like "{team_code}"') )
+ballparks <- dbGetQuery(db, glue::glue('select * from ballpark_dimensions where HomeTeamCode like "{home_team_series}"') )
 
 if (nrow(ballparks) < 1) {
   dbGetQuery(db, glue::glue('select * from ballpark_dimensions where HomeTeamCode like "BOOM"') )
@@ -189,57 +171,27 @@ if (nrow(ballparks) < 1) {
 
 if (!file.exists(folder_path)) { dir.create(folder_path) }
 # ------------------------
-yakker <-  dbGetQuery(db, 
-                      glue::glue(
-                        'SELECT *
-               FROM pitch_data 
-               where BatterTeam = "{team_filter}" --and SEASON = 2024')   ) %>%
-  dplyr::filter(
-    TaggedPitchType !='', 
-    BatterSide != '',
-    TaggedPitchType !='NA',
-    !is.na(TaggedPitchType)) %>%
-  mutate(swing = 
-           ifelse(PitchCall %in% c('Foul','FoulBall','StrikeSwinging', 'CatchersInterference', 'CatchersInt', 'InPlay'),
-                  1,0
-           )
-  )
+hitters_trackman  <-  dbGetQuery(db, glue::glue('SELECT Distinct Batter from pitch_data order by Batter')   )$Batter 
 
-unique(yakker$TaggedPitchType)
-unique(yakker$BatterTeam)
-# set a factor to manually order the pitch types
-yakker$TaggedPitchType <- factor(yakker$TaggedPitchType, levels = c("Fastball", "Sinker", "Cutter","Curveball", "Slider", "Changeup", "Splitter", 'Knuckleball', 'Other'))
+team_roster <- dbGetQuery(db, glue::glue('SELECT * FROM rosters where SEASON = 2025 and Team = "{team_filter}"')) %>%
+  filter(!grepl("P", Position),
+         Status != 'Inactive',
+         !grepl('Tie-breaker|Sudden',Player))
 
+roster_hitters <- sort(unique(team_roster$Player)) 
 
-team_roster <- rosters %>%
-  filter(TEAM == team_filter,
-         SEASON == 2024,
-         !grepl("P", POSITION),
-         STATUS != 'Inactive',
-         !grepl('Tie-breaker|Sudden',NAME))
+team_h <- team_roster %>% filter(Player %in% hitters_trackman) %>%
+  arrange(LastName)
 
-roster_hitters <- sort(unique(team_roster$NAME)) 
-roster_hitters
-hitters <- sort(unique(yakker$Batter)) 
-hitters
+unique_hitters <-team_h$Player
 
-
-team_h <- team_roster %>% filter(NAME %in% hitters)
-
-unique_hitters <-sort(team_h$NAME)
-intersect(unique_hitters, unique(yakker$Batter))
+intersect(unique_hitters, hitters_trackman)
 # unique_hitters <- unique_hitters[c(4:6)]
 
-get_density <- function(x, y, ...) {
-  dens <- MASS::kde2d(x, y, ...)
-  ix <- findInterval(x, dens$x)
-  iy <- findInterval(y, dens$y)
-  ii <- cbind(ix, iy)
-  return(dens$z[ii])
-}
+
 # LOOP ---------
 
-# unique_hitters <- unique_hitters[13:length(unique_hitters)]
+# unique_hitters <- unique_hitters[1:3]
 unique_hitters
 {  
   # For each pitcher in the dataset, fun through the following code
@@ -254,7 +206,14 @@ unique_hitters
       dplyr::filter(TaggedPitchType !='', BatterSide != '',TaggedPitchType !='NA',!is.na(TaggedPitchType)) %>%
       mutate(swing = ifelse(PitchCall %in% c('Foul','FoulBall','StrikeSwinging', 'CatchersInterference', 'CatchersInt', 'InPlay'),
                             1,0) ) %>%
-      mutate(hit_direction_5 = 
+      mutate(hit_direction_3 = 
+               case_when(
+                 PitchCall == 'InPlay' & Bearing <= -15 ~ 1,
+                 PitchCall == 'InPlay' & between(Bearing, -15, 15) ~ 2,
+                 PitchCall == 'InPlay' & Bearing >= 15 ~ 3,
+                 T ~ NA
+               ) ,
+             hit_direction_5 = 
                case_when(
                  PitchCall == 'InPlay' & Bearing <= -27 ~ 1,
                  PitchCall == 'InPlay' & between(Bearing, -27, -9) ~ 2,
@@ -341,11 +300,11 @@ unique_hitters
     
     season_stats <- all_hitters %>%
       filter(Player == hitter, SEASON == 2024)  %>%
-      dplyr::select(SEASON, G, PA, AB, H, AVG, `2B`, `3B`, HR, RBI, R,  OBP, SLG, BB, SO, SB, CS,
+      dplyr::select(SEASON, G, PA, AB, H,`2B`, `3B`, HR, RBI, R, AVG, OBP, SLG, OPS, `OPS+`=OPS_plus, BB, SO, SB, CS,
                     HBP, HDP)
     
     
-    batter_sides <- team_h$BATS[team_h$NAME==hitter]
+    batter_sides <- team_h$BATS[team_h$Player==hitter]
     batter_sides <- unique(case_when(batter_sides %in% c('B','S','Both','Switch') ~ c('Right', 'Left'),
                                      batter_sides %in% c('R','Right', 'RHH') ~ 'Right',
                                      batter_sides %in% c('L', 'Left', 'LHH') ~ 'Left',
@@ -818,7 +777,10 @@ unique_hitters
       { # IF SPRAY PLOT ----
         spray_point_opp_tbl <- hitter_data %>%
           filter(PitchCall == 'InPlay', HitType != 'Bunt', !is.na(HitType) ) %>%
-          dplyr::select(Date, HomeTeam,AwayTeam, `Top.Bottom`, PitchNo, PitcherThrows, Batter, BatterSide,ExitSpeed,TaggedPitchType, PitchCall ,PlayResult, HitType, Angle, HitSpinRate, Direction, PlateLocSide,  Distance, Bearing, pfxx, pfxz, hit_direction_5,hit_direction_7,hit_direction_9  )%>%
+          dplyr::select(Date, HomeTeam,AwayTeam, `Top.Bottom`, PitchNo, PitcherThrows, Batter, 
+                        BatterSide,ExitSpeed,TaggedPitchType, PitchCall ,PlayResult, HitType, Angle, 
+                        HitSpinRate, Direction, PlateLocSide,  Distance, Bearing, pfxx, pfxz, 
+                        hit_direction_3, hit_direction_5,hit_direction_7,hit_direction_9  )%>%
           mutate(hc_x = sin(Bearing * pi/180)*(Distance-10) ,
                  hc_y = cos(Bearing * pi/180)*(Distance-10)) %>%
           mutate(PlayResult = recode(PlayResult, Double = '2B', HomeRun = 'HR', Single = '1B', Triple = '3B', Sacrifice = 'SAC', Error = 'E', FieldersChoice = 'FC') ) %>%
@@ -905,7 +867,7 @@ unique_hitters
         of_bip <- sum(spray_point_opp_tbl$below_arc==F, na.rm = T)
         
         # INFIELD ONLY 
-        if(if_bip>=80) {
+        if(if_bip>=100) {
           
           {
             start_x <- -95
@@ -993,7 +955,7 @@ unique_hitters
             scale_fill_manual(values = hit_colors) +
             geom_label(data = poly_labels, aes(x=x, y=y, label = label), size = 4) 
           
-        } else if(between(if_bip, 40,80)) {
+        } else if(between(if_bip, 70,100)) {
           {
             start_x <- -95
             start_y <- 80
@@ -1079,7 +1041,7 @@ unique_hitters
             scale_fill_manual(values = hit_colors) +
             geom_label(data = poly_labels, aes(x=x, y=y, label = label), size = 4)
           
-        } else if(if_bip < 40) {
+        } else if(between(if_bip, 30,70)) {
           {
             start_x <- -95
             start_y <- 80
@@ -1164,13 +1126,102 @@ unique_hitters
             geom_point(aes(fill = HitType),  size = 2, pch = 21, alpha = .7) +
             scale_fill_manual(values = hit_colors) +
             geom_label(data = poly_labels, aes(x=x, y=y, label = label), size = 4)
+        } else if(if_bip <= 30){
+          
+          {
+            start_x <- -95
+            start_y <- 80
+            mid_x <- 0.45
+            mid_y <- 250
+            end_x <- 95
+            end_y <- 80
+            num_points <- 4 # Number of points along the arc
+          }
+          
+          # Calculate arc points
+          arc_points_if <- calculate_arc(start_x, start_y, mid_x, mid_y, end_x, end_y, num_points)
+          
+          {
+            start_x <- -253
+            start_y <- 245
+            mid_x <- 0.45
+            mid_y <- 450
+            end_x <- 257
+            end_y <- 246
+            num_points <- 6 # Number of points along the arc
+          }
+          
+          arc_points_of <- calculate_arc(start_x, start_y, mid_x, mid_y, end_x, end_y, num_points)
+          
+          if_spray <- spray_point_opp_tbl %>%
+            filter(!is.na(hc_x))%>%
+            filter(below_arc)%>%
+            filter(!is.na(Bearing))
+          
+          
+          if_spray_pct <- if_spray %>%
+            arrange(Bearing) %>%
+            group_by(hit_direction_3)%>%
+            summarise(bip = n()) %>%
+            filter(!is.na(hit_direction_3))%>%
+            mutate(pct = bip / sum(bip, na.rm = T),
+                   label = round(pct * 100,1),
+                   
+            ) 
+          
+          polygons <- bind_rows(
+            lapply(1:(nrow(arc_points_if) - 1), function(i) {
+              data.frame(
+                polygon_id = i, # Unique ID for each polygon
+                x = c(0, arc_points_if$x[i], arc_points_if$x[i + 1]),
+                y = c(-13.8, arc_points_if$y[i], arc_points_if$y[i + 1])
+              )
+            })
+          ) %>%
+            left_join(if_spray_pct, by = c('polygon_id' = 'hit_direction_3')) %>%
+            mutate(across(c(bip, pct, label), ~ifelse(is.na(.),0,.)))
+          
+          poly_labels <- polygons %>%
+            filter(x != 0) %>%
+            group_by(polygon_id) %>%
+            summarise(across(c(x,y,pct,label), ~ mean(.,na.rm = T)),
+                      
+                      bip = sum(bip, na.rm = T)) %>%
+            mutate(across(c(pct, label), ~ ifelse(is.na(.),0,.)))
+          
+          if_spray_plot <- ggplot(data = if_spray, aes(x=hc_x, y=hc_y))+ 
+            geom_mlb_stadium(stadium_ids = 'cubs',
+                             stadium_transform_coords = TRUE,
+                             stadium_segments = c('home_plate', 'foul_lines', 'infield_outer', 'infield_inner') ,
+                             size = 1,
+                             color = 'black')+
+            geom_point(aes(x=-63,y=63-5), pch = 23, color = 'black', fill = 'white', show.legend = F, size = 4)+
+            geom_point(aes(x=63,y=63-5), pch = 23, color = 'black', fill = 'white', show.legend = F, size = 4)+
+            geom_point(aes(x=0,y=125-5), pch = 23, color = 'black', fill = 'white', show.legend = F, size = 4)+
+            geom_polygon(data = polygons, aes(x=x,y=y, group = polygon_id, fill = pct), color = "black", show.legend = FALSE, alpha = .5) +
+            # geom_segment(data = ballparks, aes(x = Start_x , y = Start_y, xend = End_x, yend = End_y), color= 'black', size =1) +
+            geom_path (data=arc_points_if, aes(x=x,y=y), size = 2)+
+            scale_fill_gradient2(low = 'cornflowerblue', high = '#c22727', midpoint = .15) +
+            coord_fixed()+
+            labs(title = paste(nrow(if_spray), 'IF BIP'))+
+            xlim(-105,105)+ylim(-35,160)+
+            theme_void()+
+            theme(legend.position = 'bottom',
+                  plot.title = element_text(hjust = .5))+
+            new_scale_fill() +
+            geom_point(aes(fill = HitType),  size = 2, pch = 21, alpha = .7) +
+            scale_fill_manual(values = hit_colors) +
+            geom_label(data = poly_labels, aes(x=x, y=y, label = label), size = 4)
+          
+          
+          
         }
         
         if_spray_plot
       }
       
       { # OF SPRAY PLOT ----
-        if(of_bip >= 80) {
+        if(of_bip >= 100) {
           
           {
             start_x <- -95
@@ -1214,7 +1265,7 @@ unique_hitters
                    label = round(pct * 100,1),
             ) 
           
-          polygons_of <- read.csv('C://Users/tdmed/OneDrive/Documents/of_spray_9.csv') %>%
+          polygons_of <- read.csv('_other/pocket_spray/of_spray_9.csv') %>%
             left_join(of_spray_pct, by = c('polygon_id' = 'hit_direction_9')) %>%
             mutate(across(c(bip, pct, label), ~ifelse(is.na(.),0,.)))
           
@@ -1261,7 +1312,7 @@ unique_hitters
             geom_text(data = subset(ballparks, Loc == 'RF'), aes(x = End_x, y = End_y + 35, label = Distance), color = 'black', fontface = 'bold') 
           
           
-        } else if(between(of_bip,40,80)) {
+        } else if(between(of_bip,70,100)) {
           
           {
             start_x <- -95
@@ -1305,7 +1356,7 @@ unique_hitters
                    label = round(pct * 100,1),
             ) 
           
-          polygons_of <-  read.csv('C://Users/tdmed/OneDrive/Documents/of_spray_7.csv') %>%
+          polygons_of <-  read.csv('_other/pocket_spray/of_spray_7.csv') %>%
             left_join(of_spray_pct, by = c('polygon_id' = 'hit_direction_7')) %>%
             mutate(across(c(bip, pct, label), ~ifelse(is.na(.),0,.)))
           
@@ -1353,7 +1404,7 @@ unique_hitters
           
           
           
-        } else if(of_bip < 40) {
+        } else if(between(of_bip, 30,70)) {
           
           {
             start_x <- -95
@@ -1397,7 +1448,7 @@ unique_hitters
                    label = round(pct * 100,1),
             ) 
           
-          polygons_of <-  read.csv('C://Users/tdmed/OneDrive/Documents/of_spray_5.csv') %>%
+          polygons_of <-  read.csv('_other/pocket_spray/of_spray_5.csv') %>%
             # bind_rows(lapply(1:(nrow(arc_points_of) - 1), function(i) {
             #   data.frame(
             #     polygon_id = i, # Unique ID for each polygon
@@ -1415,6 +1466,105 @@ unique_hitters
             filter(row >=3) %>%
             summarise(across(c(x,y,pct,label), ~ mean(.,na.rm = T)),
                       
+                      bip = sum(bip, na.rm = T)) %>%
+            mutate(across(c(pct, label), ~ ifelse(is.na(.),0,.)))
+          
+          
+          of_spray_plot <- ggplot(data = of_spray, aes(x=hc_x, y=hc_y))+ 
+            geom_segment(aes(x = -45, y = 80, xend = 177.82, yend = 300),color = "grey", size = 1, linetype = "dotted") +
+            geom_segment(aes(x = 0, y = 80, xend = 0, yend = 350),color = "grey", size = 1, linetype = "dotted") +
+            geom_segment(aes(x = 45, y = 80, xend = -177.82, yend = 300),color = "grey", size = 1, linetype = "dotted") + 
+            geom_polygon(data = polygons_of, aes(x=x,y=y, group = polygon_id, fill = pct), color = "black", show.legend = FALSE, alpha = .5) +
+            # geom_path (data=arc_points_of, aes(x=x,y=y), size = 2)+
+            geom_segment(data = ballparks, aes(x = Start_x , y = Start_y, xend = End_x, yend = End_y), color= 'black', size = 2) +
+            geom_mlb_stadium(stadium_ids = 'cubs',
+                             stadium_transform_coords = TRUE,
+                             stadium_segments = c('home_plate', 'foul_lines', 'infield_outer', 'infield_inner') ,
+                             size = 1,
+                             color = 'black')+
+            scale_fill_gradient2(low = 'cornflowerblue', high = '#820000', midpoint = .15)+
+            coord_fixed()+
+            labs(title = paste(nrow(of_spray), 'OF BIP'),
+                 subtitle = paste(unique(ballparks$Team), 'Field Overlay'))+
+            ylim(80,435)+
+            theme_void()+
+            theme(legend.position = 'bottom',
+                  plot.title = element_text(hjust = .5),
+                  plot.subtitle = element_text(hjust = .5))+
+            new_scale_fill() +
+            geom_point(aes(fill = HitType),  size = 2, pch = 21, alpha = .7) +
+            scale_fill_manual(values = hit_colors) +
+            geom_label(data = poly_labels_of, aes(x=x, y=y, label = label), size = 4)+
+            geom_text(data = subset(ballparks, Loc == 'LF'), aes(x = End_x, y = End_y + 35, label = Distance), color = 'black', fontface = 'bold') +
+            geom_text(data = subset(ballparks, Loc == 'LCF'), aes(x = End_x, y = End_y + 35, label = Distance), color = 'black', fontface = 'bold') +
+            geom_text(data = subset(ballparks, Loc == 'CF'), aes(x = End_x, y = End_y + 35, label = Distance), color = 'black', fontface = 'bold') +
+            geom_text(data = subset(ballparks, Loc == 'RCF'), aes(x = End_x, y = End_y + 35, label = Distance), color = 'black', fontface = 'bold') +
+            geom_text(data = subset(ballparks, Loc == 'RF'), aes(x = End_x, y = End_y + 35, label = Distance), color = 'black', fontface = 'bold') 
+          
+          
+          
+        } else if (of_bip <=30){
+          
+          
+          {
+            start_x <- -95
+            start_y <- 80
+            mid_x <- 0.45
+            mid_y <- 250
+            end_x <- 95
+            end_y <- 80
+            num_points <- 6 # Number of points along the arc
+          }
+          # Calculate arc points
+          arc_points_if <- calculate_arc(start_x, start_y, mid_x, mid_y, end_x, end_y, num_points)
+          
+          {
+            start_x <- -253
+            start_y <- 245
+            mid_x <- 0.45
+            mid_y <- 450
+            end_x <- 257
+            end_y <- 246
+            num_points <- 6 # Number of points along the arc
+          }
+          
+          arc_points_of <- calculate_arc(start_x, start_y, mid_x, mid_y, end_x, end_y, num_points)
+          
+          
+          of_spray <- spray_point_opp_tbl %>%
+            filter(!is.na(hc_x))%>%
+            # filter(!HitType %in% c('GroundBall','GB')) %>%
+            filter(below_arc==F)%>%
+            filter(!is.na(Bearing))
+          
+          
+          of_spray_pct <- of_spray %>%
+            arrange(Bearing) %>%
+            group_by(hit_direction_3)%>%
+            summarise(bip = n()) %>%
+            filter(!is.na(hit_direction_3))%>%
+            mutate(pct = bip / sum(bip, na.rm = T),
+                   label = round(pct * 100,1),
+            ) 
+          
+          polygons_of <-  read.csv('_other/pocket_spray/of_spray_3.csv') %>%
+            # bind_rows(lapply(1:(nrow(arc_points_of) - 1), function(i) {
+            #   data.frame(
+            #     polygon_id = i, # Unique ID for each polygon
+            #     x = c(0, arc_points_of$x[i], arc_points_of$x[i + 1]),
+            #     y = c(-13.8, arc_points_of$y[i], arc_points_of$y[i + 1])
+            #   )
+            # }) ) %>%
+            left_join(of_spray_pct, by = c('polygon_id' = 'hit_direction_3')) %>%
+            mutate(across(c(bip, pct, label), ~ifelse(is.na(.),0,.)))
+          
+          poly_labels_of <- polygons_of %>%
+            filter(x != 0) %>% 
+            group_by(polygon_id) %>%
+            mutate(row = row_number()) %>%
+            filter(row >=3) %>%
+            summarise(across(c(x,y, pct,label), ~ mean(.,na.rm = T)),
+                      # y = max(y, na.rm = T),
                       bip = sum(bip, na.rm = T)) %>%
             mutate(across(c(pct, label), ~ ifelse(is.na(.),0,.)))
           
@@ -1623,11 +1773,11 @@ unique_hitters
         
       }
       
-      yakker %>%
-        dplyr::select(PitchCall, swing, whiff) %>%
-        group_by(PitchCall) %>%
-        summarise(swing = sum(swing, na.rm = T),
-                  whiff = sum(whiff, na.rm = T))
+      # yakker %>%
+      #   dplyr::select(PitchCall, swing, whiff) %>%
+      #   group_by(PitchCall) %>%
+      #   summarise(swing = sum(swing, na.rm = T),
+      #             whiff = sum(whiff, na.rm = T))
       
       batter_side <- case_when(i %in% c('B','S','Both','Switch') ~ c('Switch'),
                                i %in% c('R','Right', 'RHH') ~ 'RHH',

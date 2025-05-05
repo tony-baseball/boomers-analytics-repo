@@ -2243,42 +2243,102 @@ kable_pitch_metrics_cond_frmt_hi_low <- function(df) {
 
 # CATCHERS ---------------------------------------
 master_postgame_boomers_catcher_report <- function(yakker_day,catcher){
+  run_values_table <- dbGetQuery(db, "select * from run_values_long")
+  
+  stats_catching_league <- dbGetQuery(db, 'select * from stats_catching_league')
+  
   catcher_data <<- yakker_day %>%
     filter(Catcher == catcher) %>%
     tonybsbl::pitch_types_recode() %>%
     arrange(PitchNo)
   
-  catcher_summary <- catcher_data %>%
-    dplyr::summarize(
-      'Strikes Stolen' = sum(StolenStrike, na.rm = T),
-      'Strikes Lost' = sum(StrikeLost, na.rm = T),
-      'Game +/-' = sum(StolenStrike, na.rm = T)-sum(StrikeLost, na.rm = T)
+  catcher_data_2 <- catcher_data  %>%
+    select(SEASON, Date, Catcher, CatcherId, CatcherTeam, Balls, Strikes, 
+           PitchCall, PlayResult, in_zone, run_value_actual = run_value ,
+           GameID, PlateLocSide, PlateLocHeight)%>%
+    mutate(
+      xPitchCall = case_when(
+        PitchCall == 'StrikeCalled' & in_zone == 1 ~ 'StrikeCalled',
+        PitchCall == 'StrikeCalled' & in_zone == 0 ~ 'BallCalled',
+        PitchCall == 'BallCalled' & in_zone == 1 ~ 'StrikeCalled',
+        PitchCall == 'BallCalled' & in_zone == 0 ~ 'BallCalled',
+      ),
+      NetStrikes = case_when(
+        PitchCall == xPitchCall ~ 0,
+        PitchCall == 'StrikeCalled' & xPitchCall == 'BallCalled' ~ +1,
+        PitchCall == 'BallCalled' & xPitchCall == 'StrikeCalled' ~ -1,
+        
+      )
+    ) %>%
+    relocate(xPitchCall, .after = PlayResult) %>%
+    mutate(Count_start = paste0(Balls,"-",Strikes), .after = Strikes) %>%
+    mutate(
+      Count_end = case_when(
+        PitchCall == 'BallCalled' ~ paste0(Balls+1,"-",Strikes),
+        PitchCall == 'StrikeCalled' ~ paste0(Balls,"-",Strikes+1)
+      ),xCount_end = case_when(
+        xPitchCall == 'BallCalled' ~ paste0(Balls+1,"-",Strikes),
+        xPitchCall == 'StrikeCalled' ~ paste0(Balls,"-",Strikes+1)
+      ), .after = PitchCall)%>%
+    relocate(xPitchCall, xCount_end, .after = PlayResult)%>%
+    mutate(xPitchCall = gsub('StrikeCalled|StrikeSwinging', 'Strike', xPitchCall)) %>%
+    left_join(run_values_table, by = c('Count_start' = 'Count', 'xPitchCall' = 'PlayResult'))  %>%
+    rename(x_run_value = run_value) %>%
+    mutate(
+      # x_run_value = ifelse(Count_end==xCount_end,0,x_run_value),
+      rv_net = run_value_actual - x_run_value
+      # rv_net = case_when(xPitchCall == 'BallCalled' & PitchCall =='StrikeCalled' ~ -.125, 
+      #                    xPitchCall == 'StrikeCalled' & PitchCall =='BallCalled' ~ .125,
+      #                    T ~ 0)
+    ) 
+  
+  sd_RV_per_75<-0.564367
+  mean_RV_per_75 <- -0.3894959
+  
+  catcher_summary <<- catcher_data_2 %>%
+    filter(!is.na(PlateLocSide), !is.na(PlateLocHeight)) %>%
+    filter(PitchCall %in% c('StrikeCalled', 'BallCalled')) %>%
+    group_by(Catcher, CatcherId, CatcherTeam, Date, SEASON, GameID) %>%
+    summarise(G = n_distinct(GameID),
+              Pitches = n(),
+              Correct_Calls = sum(NetStrikes == 0, na.rm = T),
+              Strikes_Gained = sum(NetStrikes==1, na.rm = T),
+              Strikes_Lost = sum(NetStrikes==-1, na.rm = T),
+              Net_Strikes = sum(NetStrikes, na.rm = T),
+              RV_net = sum(rv_net, na.rm = T)
+    )  %>%
+    ungroup()%>%
+    mutate(RV_per_75 = round(RV_net / Pitches * 75,6),
+           Net_K_per_75 = round(Net_Strikes / Pitches * 75,6),
+           Framing_plus = RV_per_75 / stats_catching_league$RV_per_75[stats_catching_league$SEASON==2024] * 100,
+           Framing_plus =- (RV_per_75 - mean_RV_per_75) /
+             sd_RV_per_75  * 10 + 100,
+    ) %>% 
+    select(-c(1:7,14,15)) %>%
+    mutate(across(6, ~ round(.,2)),
+           across(7, ~ round(.))) %>%
+    rename("Correct Calls" = Correct_Calls,
+           "Strikes Stolen" = Strikes_Gained,
+           "Strikes Lost" = Strikes_Lost,
+           "Net Strikes" = Net_Strikes,
+           "RunValue" = RV_net,
+           'Framing+' = Framing_plus
     )
   
-  catcher_season_summary <- dbGetQuery(db,
-                                       glue::glue("SELECT 
-    SEASON,
-    Catcher,
-    COUNT(DISTINCT GameID) AS Games,
-    SUM(CASE WHEN PitchCall = 'StrikeCalled' AND in_zone = 0 THEN 1 ELSE 0 END) AS StrikesStolen,
-    SUM(CASE WHEN PitchCall = 'BallCalled' AND in_zone = 1 THEN 1 ELSE 0 END) AS StrikesLost,
-    SUM(CASE WHEN PitchCall = 'StrikeCalled' AND in_zone = 0 THEN 1 ELSE 0 END) -
-        SUM(CASE WHEN PitchCall = 'BallCalled' AND in_zone = 1 THEN 1 ELSE 0 END) AS NetStrikes,
-    SUM(CASE WHEN PitchCall = 'StrikeCalled' AND in_zone = 0 THEN 1 ELSE 0 END) / COUNT(DISTINCT GameID) AS StrikesStolenPerG,
-    (SUM(CASE WHEN PitchCall = 'StrikeCalled' AND in_zone = 0 THEN 1 ELSE 0 END) -
-        SUM(CASE WHEN PitchCall = 'BallCalled' AND in_zone = 1 THEN 1 ELSE 0 END)) / COUNT(DISTINCT GameID)  AS NetStrikesPerG
-FROM pitch_data
-WHERE Catcher = '{catcher}' AND 
-  PitchCall IN ('StrikeCalled', 'BallCalled')
-GROUP BY SEASON, Catcher;")
-  ) %>%
-    mutate(StrikesStolenPerG = round(StrikesStolen / Games,1),
-           NetStrikesPerG = round(NetStrikes / Games,1)) %>%
-    rename('Season +/-' =  NetStrikes,
-           'StolenStrikes per Game' = StrikesStolenPerG,
-           '+/- Strikes per Game'=NetStrikesPerG) %>%
-    arrange(desc(SEASON)) %>%
-    select(-c(`StolenStrikes per Game`))
+  catcher_season_summary <<- dbGetQuery(db, glue::glue("SELECT * FROM stats_catching_player where Catcher = '{catcher}'")) %>% 
+    select(-Catcher,-CatcherId, -CatcherTeam, -qual)%>%
+    rename("Correct Calls" = Correct_Calls,
+           "Strikes Stolen" = Strikes_Gained,
+           "Strikes Lost" = Strikes_Lost,
+           "Net Strikes" = Net_Strikes,
+           "RunValue" = RV_net,
+           "RV/75" = RV_per_75,
+           "Net Strikes/75" = Net_K_per_75 ,
+           'Framing+' = Framing_plus
+    ) %>%
+    mutate(across(8:10, ~round(.,2)),
+           `Framing+` = round(`Framing+`))
+  
   
   catcher_season_summary
   
@@ -2286,12 +2346,13 @@ GROUP BY SEASON, Catcher;")
     filter(
       StolenStrike == 1 | StrikeLost == 1
     ) %>%
-    select(PitchNo, Inning, Count, Pitcher, Catcher, Batter, TaggedPitchType, PitchCall, in_zone) %>%
+    select(PitchNo, Inning, Count, Pitcher, Catcher, Batter, TaggedPitchType, PitchCall, in_zone, run_value) %>%
     mutate(
       'Pitch' = TaggedPitchType,
       'Actual' = ifelse(in_zone == 1, "STRIKE", "BALL"),
+      run_value = round(run_value, 2)
     ) %>%
-    select(PitchNo,Inning, Count, 'Pitch', Pitcher , Catcher , Batter , PitchCall, 'Actual')
+    select(PitchNo,Inning, Count, 'Pitch', Pitcher , Batter , PitchCall, xPitchCall = Actual, RunValue = run_value)
   
   
   

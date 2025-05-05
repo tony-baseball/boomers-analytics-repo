@@ -258,8 +258,8 @@ team_info<- dbGetQuery(db, "SELECT * FROM teams")
     dplyr::select(Player, G, GS, IP, ERA, FIP, `FIP-`, R, ER, H, SO, BB, `K/9`, `BB/9`, `K%`, `BB%`, WHIP, BAA, OBP, SLG, OPS)%>%
     arrange(desc(GS), desc(G))%>%
     arrange(Player)%>%
-    mutate(across(c(`K/9`, `BB/9`), ~ round(.,1)),
-           across(c(`K%`, `BB%`), ~ round(.*100,1)),
+    mutate(across(c(`K/9`, `BB/9`), ~ round(as.numeric(.),1)),
+           across(c(`K%`, `BB%`), ~ round(as.numeric(.)*100,1)),
     )
   
   active_pitchers_boom <- unique(pitch_std_boom$Player)
@@ -448,9 +448,9 @@ team_info<- dbGetQuery(db, "SELECT * FROM teams")
     dplyr::select(Player, G, GS, IP, ERA, FIP, `FIP-`, R, ER, H, SO, BB, `K/9`, `BB/9`, `K%`, `BB%`, WHIP, BAA, OBP, SLG, OPS)%>%
     arrange(desc(GS), desc(G))%>%
     arrange(Player) %>%
-    mutate(across(c(`K/9`, `BB/9`), ~ round(.,1)),
-           across(c(`K%`, `BB%`), ~ round(.*100,1)),
-           )
+    mutate(across(c(`K/9`, `BB/9`), ~ round(as.numeric(.),1)),
+           across(c(`K%`, `BB%`), ~ round(as.numeric(.)*100,1)),
+    )
   
   active_pitchers <- unique(pitch_std$Player)
   

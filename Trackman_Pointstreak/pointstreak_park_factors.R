@@ -81,7 +81,7 @@ for(i in team_ids) {
            season = 2024, .before = 1)
   
   home_stats_against_total <- rbind(home_stats_against_total, home_stats_against)
-  print(home_stats_against)
+  # print(home_stats_against)
   
   print(i)
 }

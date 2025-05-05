@@ -34,23 +34,35 @@ library(glue)
 # opts_chunk$set(echo = FALSE)
 # knitr::opts_chunk$set(fig.pos = '!h')
 ```
+\newpage
+\begin{center}
+\textbf{\normalsize Infield Charts}
+\end{center}
 
-```{r infield, echo = F, warning = F, fig.width=7.3, fig.height=5.75, }
-cowplot::plot_grid(plot_if, plot_if, nrow = 1)
+```{r infield, echo = F, warning = F, fig.width=6.75, fig.height=10}
+cowplot::plot_grid(plot_if, plot_if, plot_if, plot_if, nrow = 2, ncol = 2)
 
 ```
+
+
+
 \newpage
-```{r infield2, echo = F, warning = F, fig.width=7.3, fig.height=5.75, }
-cowplot::plot_grid(plot_if, plot_if, nrow = 1)
+\begin{center}
+\textbf{\normalsize Ouftield Charts}
+\end{center}
+```{r outfield, echo = F, warning = F, fig.width=6.75, fig.height=10.1}
+cowplot::plot_grid(plot_with_legend, plot_with_legend,plot_with_legend, plot_with_legend,  nrow = 2, ncol = 2)
+
 
 ```
-\newpage
-```{r outfield, echo = F, warning = F, fig.width=7.3, fig.height=5.75, }
-cowplot::plot_grid(plot_with_legend, plot_with_legend, nrow = 1)
 
-```
-\newpage
-```{r outfield2, echo = F, warning = F, fig.width=7.3, fig.height=5.75, }
-cowplot::plot_grid(plot_with_legend, plot_with_legend, nrow = 1)
 
+
+\newpage
+\begin{center}
+\textbf{\normalsize For Coaches}
+\end{center}
+```{r coaches, echo = F, warning = F, fig.width=6.75, fig.height=10.1}
+# \newpage
+cowplot::plot_grid(plot_if, plot_with_legend, plot_if, plot_with_legend, nrow = 2, ncol = 2)
 ```

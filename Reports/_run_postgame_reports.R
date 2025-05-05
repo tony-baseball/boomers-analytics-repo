@@ -1,6 +1,6 @@
 # POSTGAME REPORTS
 suppressWarnings(suppressMessages({ # LOAD LIBRARIES----
-  library(plyr)
+  # library(plyr)
   library(tidyverse)
   library(baseballr)
   library(discordr)
@@ -58,7 +58,7 @@ file <- dbGetQuery(db, query)
 
 if(nrow(file) > 0 ){
   
-  yakker_day <- file %>% # read.csv(file) %>% # read.csv(file) %>%
+  yakker_day <- file %>% 
     arrange(Date, GameID, PitchNo)  %>%
     mutate(Count = paste(Balls,Strikes,sep = '-'),
            HitType = recode(HitType, FlyBall = 'FB', LineDrive = 'LD', GroundBall = 'GB', PopUp = 'PU'),
@@ -118,10 +118,10 @@ if(nrow(file) > 0 ){
     # 'box_scrape' = TRUE,
     # 'trackman_new_csv' = FALSE,
     # 'trackman_batted_ball' = FALSE,
-    'postgame_reports_pitchers' = TRUE,
+    'postgame_reports_pitchers' = F,
     # 'postgame_reports_pitcher_PA' = FALSE,
     'postgame_reports_catcher' = T,
-    'postgame_reports_hitters' = T,
+    'postgame_reports_hitters' = F,
     'daily_ev_distance' = FALSE,
     'boomers_homeruns' = FALSE
   )

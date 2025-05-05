@@ -55,18 +55,47 @@ knitr::opts_chunk$set(fig.pos = '!h')
 
 \vspace{-7mm} 
 \begin{center}
+\textbf{\normalsize Catcher Framing Report}
+
+\vspace{-2mm} 
 \textbf{\normalsize `r params$date` vs `r params$opponent`}
+
 \end{center}
 \vspace{-7mm} 
 ```{r strikes lost gained, echo = FALSE, warning = FALSE }
 kable(catcher_summary,  format = "latex",  linesep = "") %>%
   kable_styling(latex_options = "HOLD_position", position = "center")%>%
   column_spec(1,border_left = TRUE) %>%
-  column_spec(3, bold = T, border_left = T, color = 'white',
-              background = ifelse('Game +/-' > 0 & 'Game +/-' < 3, '#93EA8E',
-                                  ifelse('Game +/-' >=3,'#339a1d',
-                                         ifelse('Game +/-' < 0 & 'Game +/-' > -3, '#eaa48e', '#ba1c0f')))
-  ) %>%
+  column_spec(5, bold = T, color = 'white', #border_left = TRUE,
+              background = case_when(
+                catcher_summary$`Net Strikes` >= 5 ~ '#c91f26',
+                between(catcher_summary$`Net Strikes`, 4, 5) ~ '#eaa48e',
+                between(catcher_summary$`Net Strikes`, 3, 4) ~ 'white',
+                between(catcher_summary$`Net Strikes`, 2, 3) ~ '#b0c9f7',
+                catcher_summary$`Net Strikes` <= 2 ~ '#365ea6',
+                T ~ 'white')
+  )  %>%
+  column_spec(6, bold = T, color = 'white', #border_left = TRUE,
+              background =
+                case_when(
+                  catcher_summary$`RunValue` <= -.8 ~ '#c91f26',
+                  between(catcher_summary$`RunValue`, -.8, -.55) ~ '#da625a',
+                  between(catcher_summary$`RunValue`, -.55, -.3) ~ '#eaa48e',
+                  between(catcher_summary$`RunValue`, -.4,-.3) ~ 'white',
+                  between(catcher_summary$`RunValue`, -.3,-.1) ~ '#b0c9f7',
+                  catcher_summary$`RunValue` >= -0.1 ~ '#365ea6',
+                  T ~ 'white')  ) %>%
+  column_spec(7, bold = T,border_left = TRUE,
+              color = case_when(
+                between(catcher_summary$`Framing+`, 95, 105) ~ 'black',
+                T ~ 'white'
+              ),
+              background =
+                ifelse(catcher_summary$`Framing+` >= 108, '#c91f26',
+                       ifelse(catcher_summary$`Framing+` >= 103 & catcher_summary$`Framing+` < 108, '#eaa48e',
+                              ifelse(catcher_summary$`Framing+` >= 91 & catcher_summary$`Framing+` <= 97, '#b0c9f7',
+                                     ifelse(catcher_summary$`Framing+` <= 91, '#365ea6', 'white')))
+                )  ) %>%
   row_spec(row = 0, color = "white", background = "#12294b") %>%
   column_spec(ncol(catcher_summary), border_right = TRUE)
 ```
@@ -79,25 +108,53 @@ kable(catcher_summary,  format = "latex",  linesep = "") %>%
 kable(catcher_season_summary %>% mutate(across(3:7, ~ as.numeric(.))),  format = "latex",  linesep = "") %>%
   kable_styling(latex_options = "HOLD_position", position = "center")%>%
   column_spec(1,border_left = TRUE) %>%
-  column_spec(7, bold = T, color = 'white',
+  column_spec(9, bold = T, #border_left = TRUE,
+             color = case_when(
+                between( catcher_season_summary$`RV/75`, -.55, -.1) ~ 'black',
+                T ~ 'white'
+              ),
               background =
                 case_when(
-                  catcher_season_summary$`+/- Strikes per Game` >= 3 ~ '#339a1d',
-                  between(catcher_season_summary$`+/- Strikes per Game`, 0,3) ~ '#93EA8E',
-                  between(catcher_season_summary$`+/- Strikes per Game`, 0,-3) ~ '#eaa48e',
-                  catcher_season_summary$ `+/- Strikes per Game` <= -3 ~ '#ba1c0f',
-                  T ~ 'white'
-                  
-                  
-                )
-              # ifelse('+/- Strikes per Game' > 0 & '+/- Strikes per Game' < 3, '#93EA8E',
-              #                   ifelse('+/- Strikes per Game' >=3,'#339a1d',
-              #                          ifelse('+/- Strikes per Game' < 0 & '+/- Strikes per Game' > -3, '#eaa48e', '#ba1c0f')))
-  ) %>%
+                  catcher_season_summary$`RV/75` <= -.8 ~ '#c91f26',
+                  between(catcher_season_summary$`RV/75`, -.8, -.55) ~ '#da625a',
+                  between(catcher_season_summary$`RV/75`, -.55, -.3) ~ '#eaa48e',
+                  between(catcher_season_summary$`RV/75`, -.4,-.3) ~ 'white',
+                  between(catcher_season_summary$`RV/75`, -.3,-.1) ~ '#b0c9f7',
+                  catcher_season_summary$`RV/75` >= -0.1 ~ '#365ea6',
+                  T ~ 'white')  )  %>%
+  column_spec(10, bold = T, #border_left = TRUE,
+              color = case_when(
+                between(catcher_season_summary$`Net Strikes/75`, 2, 5) ~ 'black',
+                T ~ 'white'
+              ),
+              background = case_when(
+                catcher_season_summary$`Net Strikes/75` >= 5 ~ '#c91f26',
+                # between(catcher_season_summary$`Net Strikes/75`, 4, 5) ~ '#da625a',
+                between(catcher_season_summary$`Net Strikes/75`, 4, 5) ~ '#eaa48e',
+                between(catcher_season_summary$`Net Strikes/75`, 3, 4) ~ 'white',
+                between(catcher_season_summary$`Net Strikes/75`, 2, 3) ~ '#b0c9f7',
+                catcher_season_summary$`Net Strikes/75` <= 2 ~ '#365ea6',
+                T ~ 'white')
+  )  %>%
+  column_spec(11, bold = T, border_left = TRUE,
+              color = case_when(
+                between(catcher_season_summary$`Framing+`, 95, 105) ~ 'black',
+                T ~ 'white'
+              ),
+              background =
+                ifelse(catcher_season_summary$`Framing+` >= 108, '#c91f26',
+                       ifelse(catcher_season_summary$`Framing+` >= 103 & catcher_season_summary$`Framing+` < 108, '#eaa48e',
+                              ifelse(catcher_season_summary$`Framing+` >= 91 & catcher_season_summary$`Framing+` <= 97, '#b0c9f7',
+                                     ifelse(catcher_season_summary$`Framing+` <= 91, '#365ea6', 'white')))
+                )  )%>%
   row_spec(row = 0, color = "white", background = "#12294b") %>%
   column_spec(ncol(catcher_season_summary), border_right = TRUE)
 ```
 \vspace{-5mm}
+\begin{center}
+\textbf{\normalsize Catcher Calls Stolen/Lost}
+\vspace{-5mm} 
+\end{center}
 \centering
 ```{r strikes plots , echo = FALSE, warning = FALSE, fig.width=8, fig.height=3.5, fig.align='center'}
 # grid.arrange(StolenStrikes, LostStrikes, ncol = 2)
@@ -137,7 +194,7 @@ if(nrow(catcher_log)>0) {
     row_spec(seq(2, nrow(catcher_log), by = 2), background = "#f2f2f2") %>%
     kable_styling(latex_options = "HOLD_position", position = "center")%>%
     column_spec(1,border_left = TRUE) %>%
-    column_spec(col=9, bold = T,color = 'white',background = ifelse(catcher_log$Actual == 'BALL', '#339a1d', '#ba1c0f')) %>%
+    column_spec(col=8, bold = T,color = 'white',background = ifelse(catcher_log$xPitchCall == 'BALL', '#c91f26', '#365ea6')) %>%
     row_spec(row = 0, color = "white", background = "#12294b") %>%
     column_spec(ncol(catcher_log), border_right = TRUE)  %>%
     column_spec(1,border_left = TRUE) 

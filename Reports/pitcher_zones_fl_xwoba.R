@@ -19,10 +19,10 @@ data_2 <- data %>%
   calc_zone_hscw()
 
 t <- data_2 %>%
-  slice(1:150)
+  dplyr::slice(1:500)
 
 heart <- data_2 %>%
-  filter(zone=='heart')
+  dplyr::filter(zone_hscw=='heart')
 
 ggplot(t, aes(x=-PlateLocSide, y= PlateLocHeight, color = zone_hscw))+
   xlim(-2.5, 2.5) +
@@ -54,25 +54,30 @@ ggplot(t, aes(x=-PlateLocSide, y= PlateLocHeight, color = zone_hscw))+
   # scale_x_continuous(breaks = seq(-1.2, 1.2, by = 1), limits = c(-1.2, 1.2)) +
   # scale_y_continuous(breaks = seq(0, 4, by = 1), limits = c(0, 4))+
   coord_equal() +
-  theme_void()
-
-
-+
+  theme_void() +
   # Add a circle at (0, 2.5) with radius 1.5
   annotate("path",
            x = 1.5/12 * cos(seq(0, 2 * pi, length.out = 100)),
            y = 2.5 + 1.5/12 * sin(seq(0, 2 * pi, length.out = 100)),
-           color = "purple", linewidth = 1)+
+           color = "red", linewidth = 1)+
   annotate("path",
            x = 1.5/12 * cos(seq(0, 2 * pi, length.out = 100)),
            y = 2.75 + 1.5/12 * sin(seq(0, 2 * pi, length.out = 100)),
-           color = "purple", linewidth = 1)+
+           color = "blue", linewidth = 1)+
   annotate("path",
            x = 1.5/12 * cos(seq(0, 2 * pi, length.out = 100)),
            y = 2.25 + 1.5/12 * sin(seq(0, 2 * pi, length.out = 100)),
+           color = "green", linewidth = 1)+
+  annotate("path",
+           x = .25 + 1.5/12 * cos(seq(0, 2 * pi, length.out = 100)),
+           y = 2.75 + 1.5/12 * sin(seq(0, 2 * pi, length.out = 100)),
            color = "purple", linewidth = 1)+
   annotate("path",
-           x = 1.5/12 * cos(seq(0, 2 * pi, length.out = 100))+.25,
+           x = .58 + 1.5/12 * cos(seq(0, 2 * pi, length.out = 100)),
+           y = 2.75 + 1.5/12 * sin(seq(0, 2 * pi, length.out = 100)),
+           color = "purple", linewidth = 1)+
+  annotate("path",
+           x = .833 + 1.5/12 * cos(seq(0, 2 * pi, length.out = 100)),
            y = 2.75 + 1.5/12 * sin(seq(0, 2 * pi, length.out = 100)),
            color = "purple", linewidth = 1)
 
